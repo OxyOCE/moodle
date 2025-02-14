@@ -1112,17 +1112,29 @@ function grade_recover_history_grades($userid, $courseid) {
                        h.rawgrademin, h.rawscaleid, h.usermodified, h.finalgrade, h.hidden, h.locked, h.locktime, h.exported, h.overridden, h.excluded, h.feedback,
                        h.feedbackformat, h.information, h.informationformat, h.timemodified, itemcreated.tm AS timecreated
                   FROM {grade_grades_history} h
-                  JOIN (SELECT itemid, MAX(id) AS id
-                          FROM {grade_grades_history}
+                  JOIN (SELECT itemid, MAX(ggh.id) AS id
+                          FROM {grade_grades_history} ggh
+                          JOIN {grade_items} gi ON ggh.itemid = gi.id
                          WHERE userid = :userid1
+                           AND courseid = :courseid1
                       GROUP BY itemid) maxquery ON h.id = maxquery.id AND h.itemid = maxquery.itemid
                   JOIN {grade_items} gi ON gi.id = h.itemid
-                  JOIN (SELECT itemid, MAX(timemodified) AS tm
-                          FROM {grade_grades_history}
-                         WHERE userid = :userid2 AND action = :insertaction
+                  JOIN (SELECT itemid, MAX(ggh.timemodified) AS tm
+                          FROM {grade_grades_history} ggh
+                          JOIN {grade_items} gi ON ggh.itemid = gi.id
+                         WHERE userid = :userid2
+                           AND action = :insertaction
+                           AND courseid = :courseid2
                       GROUP BY itemid) itemcreated ON itemcreated.itemid = h.itemid
-                 WHERE gi.courseid = :courseid";
-        $params = array('userid1' => $userid, 'userid2' => $userid , 'insertaction' => GRADE_HISTORY_INSERT, 'courseid' => $courseid);
+                 WHERE gi.courseid = :courseid3";
+        $params = [
+            'userid1' => $userid,
+            'userid2' => $userid,
+            'insertaction' => GRADE_HISTORY_INSERT,
+            'courseid1' => $courseid,
+            'courseid2' => $courseid,
+            'courseid3' => $courseid
+        ];
         $oldgrades = $DB->get_records_sql($sql, $params);
 
         //now move the old grades to the grade_grades table
